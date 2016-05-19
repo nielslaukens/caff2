@@ -65,7 +65,7 @@ use Crypt::OpenPGP::Armour;
 
 
 if( @ARGV == 0 ) {
-	print STDERR "Usage: $0 keyid ...\n";
+	print STDERR "Usage: $0 keyid ... < keyring\n";
 	exit 64;
 }
 my @mykeyid = @ARGV; @ARGV = ();
@@ -140,25 +140,29 @@ sub process_packet {
 			or die("could not find '\\bsigclass 0x' in signature packet\n:$packet");
 		my $sigclass = hex($1);
 
-		if( $sigclass >= 0x10 && $sigclass <= 0x13 ) {
-			# certification signature
-			if( $sig_by eq $key[-1]->{keyid} ) {
-				# self signature
-				print STDERR "WARNING: multiple selfsigs" if defined $key[-1]->{uid}[-1]->{selfsig};
-				$key[-1]->{uid}[-1]->{selfsig} = $packetbin;
+		if( $packet !~ m/\bhashed subpkt 4 len 1 \(not exportable\)$/m ) {
+			# only loop over exportable signatures.
 
-			} elsif( grep { $_ eq $sig_by } @mykeyid ) {
-				# signature by @mykey
-				push @{ $key[-1]->{uid}[-1]->{sig} }, {
-						packet => $packetbin,
-						keyid => $sig_by,
-					};
-			}
-		} elsif( $sigclass == 0x30 ) {
-			# Revokation
-			if( $sig_by eq $key[-1]->{keyid} ) {
-				# self signature
-				$key[-1]->{uid}[-1]->{revoked} = 1;
+			if( $sigclass >= 0x10 && $sigclass <= 0x13 ) {
+				# certification signature
+				if( $sig_by eq $key[-1]->{keyid} ) {
+					# self signature
+					print STDERR "WARNING: multiple selfsigs" if defined $key[-1]->{uid}[-1]->{selfsig};
+					$key[-1]->{uid}[-1]->{selfsig} = $packetbin;
+
+				} elsif( grep { $_ eq $sig_by } @mykeyid ) {
+					# signature by @mykey
+					push @{ $key[-1]->{uid}[-1]->{sig} }, {
+							packet => $packetbin,
+							keyid => $sig_by,
+						};
+				}
+			} elsif( $sigclass == 0x30 ) {
+				# Revokation
+				if( $sig_by eq $key[-1]->{keyid} ) {
+					# self signature
+					$key[-1]->{uid}[-1]->{revoked} = 1;
+				}
 			}
 		}
 
