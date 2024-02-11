@@ -40,7 +40,7 @@ signatures by running each through `gpg --import`.
 Note that I did not upload your key to any keyservers. If you want this
 new signature to be available to others, please upload it yourself.
 With GnuPG this can be done using
-	gpg --keyserver pool.sks-keyservers.net \
+	gpg --keyserver  keys.openpgp.org\
 		--send-key {$key}
 
 If you have any questions, don't hesitate to ask.
